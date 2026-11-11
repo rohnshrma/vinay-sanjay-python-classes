@@ -5,36 +5,36 @@
 
 SELECT
 
-    -- COUNT(*) counts all the rows in the table.
-    -- It does not matter whether the columns have NULL values or not.
-    -- Example: if the table has 100 records, the result is 100.
+    -- COUNT(*) counts all rows in the table.
+    -- It does not matter whether columns contain NULL values.
+    -- Example: If the table has 100 records, result = 100.
     (SELECT COUNT(*)
      FROM raw_enrollments) AS total_rows,
 
-    -- COUNT(DISTINCT enrollment_id) counts the unique enrollment IDs.
-    -- DISTINCT removes the duplicate values before counting.
-    -- But it does NOT clean the extra spaces or the letter casing.
-    -- Example: 'STU101' and 'stu101' may get counted separately.
+    -- COUNT(DISTINCT enrollment_id) counts unique enrollment IDs.
+    -- DISTINCT removes duplicate values before counting.
+    -- However, it does NOT clean extra spaces or letter casing.
+    -- Example: 'STU101' and 'stu101' may be counted separately.
     (SELECT COUNT(DISTINCT enrollment_id)
      FROM raw_enrollments) AS ids_as_typed,
 
-    -- UPPER() converts all the characters into capital letters.
-    -- TRIM() removes the spaces from the start and the end.
-    -- DISTINCT then finds the unique IDs after this standardisation.
+    -- UPPER() converts all characters into uppercase.
+    -- TRIM() removes leading and trailing spaces.
+    -- DISTINCT then identifies unique IDs after standardization.
     -- Example:
     -- ' stu101 ' becomes 'STU101'
     -- 'stu101'   becomes 'STU101'
-    -- Now both are treated as the same ID.
+    -- Both are now considered the same ID.
     (SELECT COUNT(
         DISTINCT UPPER(TRIM(enrollment_id))
      )
      FROM raw_enrollments) AS ids_after_trim;
 
 
--- one-line data quality report (first rough draft, kindly refer CHECK 2 below for the proper version)
+-- one-line data quality report
 
 select(
-(select count(*) from raw_enrollments
+(select count(*) from raw_enrollments 
 	where full_name is null) 				as missing_name,
 
 (select count(*) from raw_enrollments
@@ -64,7 +64,7 @@ SELECT
     -- CHECK 1: MISSING NAMES
     -- -------------------------------------------------
 
-    -- COUNT(*) counts only those records which satisfy the WHERE condition.
+    -- COUNT(*) counts records satisfying the WHERE condition.
     -- IS NULL checks whether full_name has a NULL value.
     (SELECT COUNT(*)
      FROM raw_enrollments
@@ -76,11 +76,11 @@ SELECT
     -- CHECK 2: MISSING EMAILS
     -- -------------------------------------------------
 
-    -- TRIM() removes the spaces from the start and the end.
+    -- TRIM() removes leading and trailing spaces.
     -- COALESCE() replaces NULL with an empty string.
-    -- IN checks whether the value matches any one of the listed values.
+    -- IN checks whether the value matches any listed value.
     --
-    -- We treat the following values as missing:
+    -- We consider the following values as missing:
     -- NULL, '', 'N/A', 'NA', 'NULL'
     (SELECT COUNT(*)
      FROM raw_enrollments
@@ -99,8 +99,8 @@ SELECT
      WHERE
         CASE
 
-            -- ~ is the regular expression operator in PostgreSQL.
-            -- ^\d+$ means the whole value must have digits only.
+            -- ~ is the PostgreSQL regular expression operator.
+            -- ^\d+$ means the entire value must contain digits only.
             --
             -- Examples:
             -- '25'  = TRUE
@@ -109,16 +109,16 @@ SELECT
             -- '25a' = FALSE
             WHEN TRIM(age) ~ '^\d+$' THEN
 
-                -- ::int converts the text into an integer.
+                -- ::int converts text into an integer.
                 -- NOT BETWEEN 16 AND 60 checks whether
-                -- the age is outside the valid range or not.
+                -- the numeric age is outside the valid range.
                 --
                 -- 15 = invalid
                 -- 25 = valid
                 -- 65 = invalid
                 TRIM(age)::int NOT BETWEEN 16 AND 60
 
-            -- If age is not a number, we mark it as invalid.
+            -- If age is not numeric, mark it as invalid.
             -- This also catches NULL and blank values.
             ELSE TRUE
 
@@ -130,8 +130,8 @@ SELECT
     -- CHECK 4: MISSING COURSES
     -- -------------------------------------------------
 
-    -- COALESCE takes care of the NULL values.
-    -- TRIM removes the extra spaces.
+    -- COALESCE handles NULL values.
+    -- TRIM removes extra spaces.
     -- IN checks for blank values and TBD.
     (SELECT COUNT(*)
      FROM raw_enrollments
@@ -147,27 +147,27 @@ SELECT
 -- =====================================================
 
 SELECT
-    clean_id,       -- shows the standardised enrollment ID
-    copies          -- shows how many times this ID is appearing
+    clean_id,       -- Displays the standardized enrollment ID
+    copies          -- Displays how many times this ID appears
 
 FROM (
 
-    -- INNER QUERY: CLEAN THE IDs AND COUNT THEIR OCCURRENCES
+    -- INNER QUERY: CLEAN IDs AND COUNT THEIR OCCURRENCES
 
     SELECT
 
-        -- UPPER() converts all the characters into capital letters.
-        -- TRIM() removes the spaces from the start and the end.
+        -- UPPER() converts all characters into uppercase.
+        -- TRIM() removes leading and trailing spaces.
         --
-        -- REGEXP_REPLACE() replaces the text which matches a pattern.
+        -- REGEXP_REPLACE() replaces text matching a pattern.
         --
         -- '^WG-?' means:
-        -- ^   = match only at the beginning of the string.
-        -- WG  = match the letters WG.
-        -- -?  = the hyphen is optional.
+        -- ^   = Match only at the beginning of the string.
+        -- WG  = Match the letters WG.
+        -- -?  = Hyphen is optional.
         --
-        -- The replacement value 'WG-' makes sure that IDs
-        -- starting with WG or WG- all come in the WG- format.
+        -- Replacement value 'WG-' ensures that IDs
+        -- starting with WG or WG- use the WG- format.
         --
         -- Examples:
         -- wg101     becomes WG-101
@@ -182,14 +182,14 @@ FROM (
 
 
         -- COUNT(*) counts how many rows belong to each
-        -- standardised enrollment ID.
+        -- standardized enrollment ID.
         COUNT(*) AS copies
 
 
     FROM raw_enrollments
 
-    -- GROUP BY puts the records having the same cleaned ID together.
-    -- IDs which become identical after cleaning form one group.
+    -- GROUP BY groups records having the same cleaned ID.
+    -- IDs that become identical after cleaning form one group.
     GROUP BY
         REGEXP_REPLACE(
             UPPER(TRIM(enrollment_id)),
@@ -200,13 +200,67 @@ FROM (
 ) AS duplicate_check
 
 -- OUTER QUERY:
--- Keep only those IDs which appear more than once.
--- These are the possible duplicate enrollment records.
+-- Keep only IDs that appear more than once.
+-- These are potential duplicate enrollment records.
 WHERE copies > 1
 
--- Sort the results:
--- First: the highest duplicate count comes on top.
--- Second: if counts are equal, sort the IDs alphabetically.
+-- Sort results:
+-- First: Highest duplicate count comes first.
+-- Second: If counts are equal, sort IDs alphabetically.
 ORDER BY
     copies DESC,
     clean_id;
+
+
+
+-- =====================================================
+-- FIND ALL RECORDS HAVING DUPLICATE CLEANED ENROLLMENT IDs
+-- =====================================================
+
+SELECT
+    enrollment_id,  -- Original enrollment ID from the table
+    full_name,      -- Student's name
+    city,           -- Student's city
+    course,         -- Course enrolled in
+    fee_paid        -- Fee paid by the student
+
+FROM raw_enrollments
+
+-- WHERE filters records based on a condition.
+-- We are checking whether the cleaned enrollment ID
+-- exists in the list returned by the subquery.
+
+WHERE REGEXP_REPLACE(
+          UPPER(TRIM(enrollment_id)),
+          '^WG-?',
+          'WG-'
+      )
+
+      IN (
+
+          -- =========================================
+          -- SUBQUERY: IDENTIFY DUPLICATE CLEANED IDs
+          -- =========================================
+
+          SELECT
+              REGEXP_REPLACE(
+                  UPPER(TRIM(enrollment_id)),
+                  '^WG-?',
+                  'WG-'
+              )
+
+          FROM raw_enrollments
+
+          -- GROUP BY 1 means group by the first
+          -- expression in the SELECT statement.
+          -- Here, the first expression is the cleaned ID.
+          GROUP BY 1
+
+          -- HAVING filters groups after aggregation.
+          -- COUNT(*) > 1 means the ID appears more than once.
+          HAVING COUNT(*) > 1
+
+      )
+
+-- Sort the final records by standardized enrollment ID.
+ORDER BY UPPER(TRIM(enrollment_id));
