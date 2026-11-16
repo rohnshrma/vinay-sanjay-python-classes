@@ -181,3 +181,16 @@ order by course, city;
 
 -- Task 3. Looking at female students only, which cities have 2 or more of them?
 
+
+
+
+select e.name  as employee,
+e.role,
+m.name as manager
+from staff e
+join staff m
+on e.manager_id = m.staff_id
+order by e.staff_id;
+
+
+
