@@ -263,4 +263,12 @@ WHERE REGEXP_REPLACE(
       )
 
 -- Sort the final records by standardized enrollment ID.
+
+
+
+
+
 ORDER BY UPPER(TRIM(enrollment_id));
+
+
+
