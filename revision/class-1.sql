@@ -151,8 +151,12 @@ having sum (fee_paid) > 80000
 order by total_fee desc;
 
 
+-- Task 1. How many male and how many female students do we have?
 
 -- Question: which cities have at least 2 students who paid ₹15,000 or more?
 
+--  For each city, show the highest and the lowest fee paid.
+
+-- Count students for every course + city combination. Sort by course, then city.
 
 
