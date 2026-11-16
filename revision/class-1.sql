@@ -138,5 +138,21 @@ order by total_students desc;
 
 
 
+select city, count(*) as total_students
+from students
+group by city
+having count(*) > 3;
+
+
+select course , sum (fee_paid) as total_fee
+from students
+group by course
+having sum (fee_paid) > 80000
+order by total_fee desc;
+
+
+
+-- Question: which cities have at least 2 students who paid ₹15,000 or more?
+
 
 
