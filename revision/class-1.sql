@@ -159,4 +159,25 @@ order by total_fee desc;
 
 -- Count students for every course + city combination. Sort by course, then city.
 
+select city, count(*) as students_paid_15k_plus
+from students
+where fee_paid >= 15000
+group by city
+having count(*) >= 2
+order by students_paid_15k_plus desc;
+
+
+
+select course , city, count(*) as total
+from students
+group by course, city
+order by course, city;
+
+
+
+-- Task 1. Show cities where the average fee paid is more than ₹15,000.
+
+-- Task 2. Show courses that have fewer than 5 students.
+
+-- Task 3. Looking at female students only, which cities have 2 or more of them?
 
