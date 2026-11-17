@@ -180,3 +180,36 @@ join payments p on p.student_id = s.student_id
 group by s.student_id , s.name, s.agreed_fee
 having s.agreed_fee - sum(p.amount) > 0
 order by pending desc,s.name;
+
+
+
+
+select st.name as counsellor,
+	count(*) as leads_handled,
+	count(*) filter (where l.status = 'Converted') as Converted,
+	round(100.0 * count(*) Filter(where l.status = 'Converted') / count(*) , 1) as conversion_pct
+from leads l
+join staff st on st.staff_id = l.counsellor_id
+group by st.name
+order by conversion_pct;
+
+
+
+select s.name,
+s.agreed_fee,
+coalesce(sum(p.amount) , 0)					as total_paid,
+s.agreed_fee - coalesce(sum(p.amount) , 0) 	as balance
+from students s 
+left join payments p on p.student_id = s.student_id
+group by s.student_id, s.name, s.agreed_fee
+order by balance desc;
+
+
+
+
+select s.name, count(*) as instalments
+from payments p
+join students s on  s.student_id = p.student_id
+group by s.name
+having count(*) > 1
+order by instalments desc, s.name;
